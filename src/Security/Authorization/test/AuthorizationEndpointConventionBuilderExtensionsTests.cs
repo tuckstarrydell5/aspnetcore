@@ -220,7 +220,6 @@ public class AuthorizationEndpointConventionBuilderExtensionsTests
         endpointModel.Metadata.Add(authorize);
         convention(endpointModel);
 
-
         // Confirm that we don't add another authorize if one already exists
         Assert.Equal(3, endpointModel.Metadata.Count);
         Assert.Equal(authorize, endpointModel.Metadata[0]);
