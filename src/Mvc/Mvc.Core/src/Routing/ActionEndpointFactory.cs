@@ -45,33 +45,19 @@ internal sealed class ActionEndpointFactory
         IReadOnlyList<ConventionalRouteEntry> routes,
         IReadOnlyList<Action<EndpointBuilder>> groupConventions,
         IReadOnlyList<Action<EndpointBuilder>> conventions,
+        IReadOnlyList<Action<EndpointBuilder>> groupFinalConventions,
+        IReadOnlyList<Action<EndpointBuilder>> finalConventions,
         bool createInertEndpoints,
         RoutePattern? groupPrefix = null)
     {
-        if (endpoints == null)
-        {
-            throw new ArgumentNullException(nameof(endpoints));
-        }
-
-        if (routeNames == null)
-        {
-            throw new ArgumentNullException(nameof(routeNames));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
-
-        if (routes == null)
-        {
-            throw new ArgumentNullException(nameof(routes));
-        }
-
-        if (conventions == null)
-        {
-            throw new ArgumentNullException(nameof(conventions));
-        }
+        ArgumentNullException.ThrowIfNull(nameof(endpoints));
+        ArgumentNullException.ThrowIfNull(nameof(routeNames));
+        ArgumentNullException.ThrowIfNull(nameof(action));
+        ArgumentNullException.ThrowIfNull(nameof(routes));
+        ArgumentNullException.ThrowIfNull(nameof(groupConventions));
+        ArgumentNullException.ThrowIfNull(nameof(conventions));
+        ArgumentNullException.ThrowIfNull(nameof(groupFinalConventions));
+        ArgumentNullException.ThrowIfNull(nameof(finalConventions));
 
         if (createInertEndpoints)
         {
@@ -90,7 +76,10 @@ internal sealed class ActionEndpointFactory
                 suppressPathMatching: false,
                 groupConventions: groupConventions,
                 conventions: conventions,
-                perRouteConventions: Array.Empty<Action<EndpointBuilder>>());
+                perRouteConventions: Array.Empty<Action<EndpointBuilder>>(),
+                groupFinalConventions: groupFinalConventions,
+                finalConventions: finalConventions,
+                perRouteFinalConventions: Array.Empty<Action<EndpointBuilder>>());
             endpoints.Add(builder.Build());
         }
 
@@ -130,7 +119,10 @@ internal sealed class ActionEndpointFactory
                     suppressPathMatching: false,
                     groupConventions: groupConventions,
                     conventions: conventions,
-                    perRouteConventions: route.Conventions);
+                    perRouteConventions: route.Conventions,
+                    groupFinalConventions: groupFinalConventions,
+                    finalConventions: finalConventions,
+                    perRouteFinalConventions: route.FinalConventions);
                 endpoints.Add(builder.Build());
             }
         }
@@ -172,7 +164,10 @@ internal sealed class ActionEndpointFactory
                 action.AttributeRouteInfo.SuppressPathMatching,
                 groupConventions: groupConventions,
                 conventions: conventions,
-                perRouteConventions: Array.Empty<Action<EndpointBuilder>>());
+                perRouteConventions: Array.Empty<Action<EndpointBuilder>>(),
+                groupFinalConventions: groupFinalConventions,
+                finalConventions: finalConventions,
+                perRouteFinalConventions: Array.Empty<Action<EndpointBuilder>>());
             endpoints.Add(builder.Build());
         }
     }
@@ -184,6 +179,8 @@ internal sealed class ActionEndpointFactory
         ConventionalRouteEntry route,
         IReadOnlyList<Action<EndpointBuilder>> groupConventions,
         IReadOnlyList<Action<EndpointBuilder>> conventions,
+        IReadOnlyList<Action<EndpointBuilder>> groupFinalConventions,
+        IReadOnlyList<Action<EndpointBuilder>> finalConventions,
         RoutePattern? groupPrefix = null)
     {
         if (endpoints == null)
@@ -269,6 +266,21 @@ internal sealed class ActionEndpointFactory
             route.Conventions[i](builder);
         }
 
+        for (var i = route.FinalConventions.Count - 1; i >= 0; i--)
+        {
+            route.FinalConventions[i](builder);
+        }
+
+        for (var i = finalConventions.Count - 1; i >= 0; i--)
+        {
+            finalConventions[i](builder);
+        }
+
+        for (var i = groupFinalConventions.Count - 1; i >= 0; i--)
+        {
+            groupFinalConventions[i](builder);
+        }
+
         endpoints.Add((RouteEndpoint)builder.Build());
     }
 
@@ -334,7 +346,10 @@ internal sealed class ActionEndpointFactory
         bool suppressPathMatching,
         IReadOnlyList<Action<EndpointBuilder>> groupConventions,
         IReadOnlyList<Action<EndpointBuilder>> conventions,
-        IReadOnlyList<Action<EndpointBuilder>> perRouteConventions)
+        IReadOnlyList<Action<EndpointBuilder>> perRouteConventions,
+        IReadOnlyList<Action<EndpointBuilder>> groupFinalConventions,
+        IReadOnlyList<Action<EndpointBuilder>> finalConventions,
+        IReadOnlyList<Action<EndpointBuilder>> perRouteFinalConventions)
     {
         // REVIEW: The RouteEndpointDataSource adds HttpMethodMetadata before running group conventions
         // do we need to do the same here?
@@ -462,6 +477,21 @@ internal sealed class ActionEndpointFactory
             }
 
             cad.FilterDelegate = ReferenceEquals(del, initialFilteredInvocation) ? null : del;
+        }
+
+        for (var i = perRouteFinalConventions.Count - 1; i >= 0; i--)
+        {
+            perRouteFinalConventions[i](builder);
+        }
+
+        for (var i = finalConventions.Count - 1; i >= 0; i--)
+        {
+            finalConventions[i](builder);
+        }
+
+        for (var i = groupFinalConventions.Count - 1; i >= 0; i--)
+        {
+            groupFinalConventions[i](builder);
         }
     }
 

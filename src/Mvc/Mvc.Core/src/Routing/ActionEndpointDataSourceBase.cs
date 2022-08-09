@@ -23,6 +23,7 @@ internal abstract class ActionEndpointDataSourceBase : EndpointDataSource, IDisp
 
     // Protected for READS and WRITES.
     protected readonly List<Action<EndpointBuilder>> Conventions;
+    protected readonly List<Action<EndpointBuilder>> FinalConventions;
 
     private List<Endpoint>? _endpoints;
     private CancellationTokenSource? _cancellationTokenSource;
@@ -34,6 +35,7 @@ internal abstract class ActionEndpointDataSourceBase : EndpointDataSource, IDisp
         _actions = actions;
 
         Conventions = new List<Action<EndpointBuilder>>();
+        FinalConventions = new List<Action<EndpointBuilder>>();
     }
 
     public override IReadOnlyList<Endpoint> Endpoints
@@ -53,7 +55,9 @@ internal abstract class ActionEndpointDataSourceBase : EndpointDataSource, IDisp
             context.Prefix,
             _actions.ActionDescriptors.Items,
             Conventions,
-            context.Conventions);
+            context.Conventions,
+            FinalConventions,
+            context.FinalConventions);
     }
 
     // Will be called with the lock.
@@ -61,7 +65,9 @@ internal abstract class ActionEndpointDataSourceBase : EndpointDataSource, IDisp
         RoutePattern? groupPrefix,
         IReadOnlyList<ActionDescriptor> actions,
         IReadOnlyList<Action<EndpointBuilder>> conventions,
-        IReadOnlyList<Action<EndpointBuilder>> groupConventions);
+        IReadOnlyList<Action<EndpointBuilder>> groupConventions,
+        IReadOnlyList<Action<EndpointBuilder>> finalConventions,
+        IReadOnlyList<Action<EndpointBuilder>> groupFinalConventions);
 
     protected void Subscribe()
     {
@@ -111,11 +117,13 @@ internal abstract class ActionEndpointDataSourceBase : EndpointDataSource, IDisp
     {
         lock (Lock)
         {
-            var endpoints = CreateEndpoints(groupPrefix: null, _actions.ActionDescriptors.Items, Conventions, Array.Empty<Action<EndpointBuilder>>());
-
-            // See comments in DefaultActionDescriptorCollectionProvider. These steps are done
-            // in a specific order to ensure callers always see a consistent state.
-
+            var endpoints = CreateEndpoints(
+                groupPrefix: null,
+                _actions.ActionDescriptors.Items,
+                conventions: Conventions,
+                groupConventions: Array.Empty<Action<EndpointBuilder>>(),
+                finalConventions: FinalConventions,
+                groupFinalConventions: Array.Empty<Action<EndpointBuilder>>());
             // Step 1 - capture old token
             var oldCancellationTokenSource = _cancellationTokenSource;
 

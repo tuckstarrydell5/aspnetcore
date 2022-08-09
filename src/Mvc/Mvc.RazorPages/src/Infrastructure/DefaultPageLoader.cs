@@ -88,6 +88,8 @@ internal sealed class DefaultPageLoader : PageLoader
                         }
                     },
             },
+            groupFinalConventions: Array.Empty<Action<EndpointBuilder>>(),
+            finalConventions: Array.Empty<Action<EndpointBuilder>>(),
             createInertEndpoints: false);
 
         // In some test scenarios there's no route so the endpoint isn't created. This is fine because
